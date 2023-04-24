@@ -17,7 +17,11 @@ while True:
         break 
     if avalcmnd(cmnd) == True:
         if operation == "SEARCH":
+        # Param: <location> <cost> 
+        # Given a <cost> and <location>, returns all trips until said <cost> based on the <location>
+
             pass 
+
         if operation == "FILTER":
             pass
         if operation == "DETAILS":

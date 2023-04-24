@@ -21,7 +21,22 @@ def connectDB(dbname):
         cursor.execute("CREATE TABLE legs (id TEXT, dep_IATA TEXT, arr_IATA TEXT, dep_datetime INTEGER, arr_datetime INTEGER,\
                         duration_min INTEGER, arlineCodes TEXT)") # Criação da tabela legs (voos)
         cursor.execute("CREATE TABLE roundtrips (id INTEGER, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT)") # Criação da tabela 
-        cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT)")
+        cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT)") # Criação da tabela airlines
+        # Inicializar a tabela locations com 10 registos:
+        registos = [(0,'Lisboa','LIS','Lisbon'),
+            (1,'Madrid','MAD','Madird'),
+            (2,'Paris','CDG','Paris'),
+            (3,'Dublin','DUB','Dublin'),
+            (4,'Brussels','BRU','Brussels'),
+            (5,'Liubliana','LJU','Ljubljana'),
+            (6,'Amsterdam','AMS','Amsterdam'),
+            (7,'Berlin','TXL','Berlin'),
+            (8,'Roma','FCO','Roma'),
+            (9,'Vienna','VIE','Vienna')]
+        # cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", registos)
+        for i in registos:
+            cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", i)
+        connection.commit()
         return connection, cursor
         
 connectDB("flightsDB.db")

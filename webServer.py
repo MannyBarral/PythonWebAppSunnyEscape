@@ -3,7 +3,7 @@
     Manuel Barral 56943, Lilia Colisnyc xxxxx
 
 """
-from flask import Flask, request, make_response
+from flask import Flask, request, make_response, jsonify
 import sqlite3
 from os.path import isfile
 
@@ -37,13 +37,22 @@ def connectDB(dbname):
         for i in registos:
             cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", i)
         connection.commit()
-        return connection, cursor
+    return connection, cursor
         
 connectDB("flightsDB.db")
-        
-@app.route('/search', methods=["GET"])
-def search ():
-    pass 
+
+@app.route('/search')
+@app.route('/search/<location>/<int:cost>')
+def search(location=None, cost=None):
+    if request.method == 'GET':    
+        conn, cursor = connectDB("flightsDB.db")
+        locationInfo = cursor.execute("SELECT * FROM locations WHERE wea_name = ?", (location,))
+        row = locationInfo.fetchone()
+        conn.commit()
+        conn.close()
+        r = make_response(jsonify(row))
+        r.status_code = 200
+        return r
 
 @app.route('/filter', methods= ['GET'])
 def filter ():
@@ -54,4 +63,4 @@ def details ():
     pass
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8080)
+    app.run(debug=True, port=8081)

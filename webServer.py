@@ -27,16 +27,16 @@ def connectDB(dbname):
         cursor.execute("CREATE TABLE roundtrips (id INTEGER, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT)") # Criação da tabela 
         cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT)") # Criação da tabela airlines
         # Inicializar a tabela locations com 10 registos:
-        registos = [(0,'Lisboa','LIS','Lisbon'),
-            (1,'Madrid','MAD','Madird'),
-            (2,'Paris','CDG','Paris'),
-            (3,'Dublin','DUB','Dublin'),
-            (4,'Bruxelas','BRU','Brussels'),
-            (5,'Liubliana','LJU','Ljubljana'),
-            (6,'Amsterdao','AMS','Amsterdam'),
-            (7,'Berlin','TXL','Berlin'),
-            (8,'Roma','FCO','Roma'),
-            (9,'Vienna','VIE','Vienna')]
+        registos = [(0,'Lisboa','LIS','lisbon'),
+            (1,'Madrid','MAD','madird'),
+            (2,'Paris','CDG','paris'),
+            (3,'Dublin','DUB','dublin'),
+            (4,'Bruxelas','BRU','brussels'),
+            (5,'Atenas','LJU','athens'),
+            (6,'Amsterdão','AMS','amsterdam'),
+            (7,'Berlim','TXL','berlin'),
+            (8,'Roma','FCO','rome'),
+            (9,'Vienna','VIE','vienna')]
         # cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", registos)
         for i in registos:
             cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", i)
@@ -50,10 +50,26 @@ connectDB("flightsDB.db")
 def search(location=None, cost=None):
     if request.method == 'GET':    
         # Get from WeatherAPI the conditions of the other 9 possible destinations for the next 14 days:
-    
-        req= requests.get('http://api.weatherapi.com/v1/forecast.json?key=e5b2cb8889174437992143058232404&q=Lisbon&days=14&aqi=no&alerts=no')
-        content = json.loads(req.content.decode())
-        print(content['current']['condition']['text'])
+        conn, cursor = connectDB('flightsDB.db')
+        cursor.execute("SELECT wea_name FROM locations WHERE name != ?", (location,))
+        names = cursor.fetchall()
+        conn.commit()
+        conn.close()
+        cities_wea_names = []
+        for i in names:
+            for x in i:
+                cities_wea_names.append(x)
+        print(cities_wea_names)
+        # For each city search for the weather for the next 14 days        
+        for city in cities_wea_names:
+            url = f'http://lmpinto.eu.pythonanywhere.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no'
+            req= requests.get(url)
+            if req.content != b'Cidade nao encontrada':
+                print(json.loads(req.content)['location']['name'])
+                weathers = []
+                for i in 
+            else:
+                print(city, ": Não foi Encontrada")
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))
         r.status_code = 200
         return r

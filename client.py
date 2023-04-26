@@ -38,7 +38,7 @@ while True:
         elif operation == "DETAILS":
         # Param: <viagem_ID>
         # Given a <viagem_ID> the server will return a detailed preview of the trip:
-        #   4 days of travel + costs + all the data of the two flights (dates, origin and destination, IATAs, etc...)
+        # 4 days of travel + costs + all the data of the two flights (dates, origin and destination, IATAs, etc...)
             pass
     else:
         print("Unknown Command")

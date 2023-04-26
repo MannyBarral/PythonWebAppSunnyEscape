@@ -46,11 +46,9 @@ connectDB("flightsDB.db")
 def search(location=None, cost=None):
     if request.method == 'GET':    
         conn, cursor = connectDB("flightsDB.db")
-        locationInfo = cursor.execute("SELECT * FROM locations WHERE wea_name = ?", (location,))
-        row = locationInfo.fetchone()
         conn.commit()
         conn.close()
-        r = make_response(jsonify(row))
+        r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))
         r.status_code = 200
         return r
 

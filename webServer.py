@@ -4,6 +4,7 @@
 
 """
 from flask import Flask, request, make_response, jsonify
+import requests
 import sqlite3
 from os.path import isfile
 
@@ -27,9 +28,9 @@ def connectDB(dbname):
             (1,'Madrid','MAD','Madird'),
             (2,'Paris','CDG','Paris'),
             (3,'Dublin','DUB','Dublin'),
-            (4,'Brussels','BRU','Brussels'),
+            (4,'Bruxelas','BRU','Brussels'),
             (5,'Liubliana','LJU','Ljubljana'),
-            (6,'Amsterdam','AMS','Amsterdam'),
+            (6,'Amsterdao','AMS','Amsterdam'),
             (7,'Berlin','TXL','Berlin'),
             (8,'Roma','FCO','Roma'),
             (9,'Vienna','VIE','Vienna')]
@@ -45,9 +46,10 @@ connectDB("flightsDB.db")
 @app.route('/search/<location>/<int:cost>')
 def search(location=None, cost=None):
     if request.method == 'GET':    
-        conn, cursor = connectDB("flightsDB.db")
-        conn.commit()
-        conn.close()
+        # Get from WeatherAPI the conditions of the other 9 possible destinations for the next 14 days:
+
+        req= requests.get('http://api.weatherapi.com/v1/forecast.json?key=e5b2cb8889174437992143058232404&q=Lisbon&days=14&aqi=no&alerts=no')
+        print(req.content.decode())
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))
         r.status_code = 200
         return r

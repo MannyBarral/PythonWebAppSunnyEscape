@@ -6,9 +6,12 @@
 from flask import Flask, request, make_response, jsonify
 import requests
 import sqlite3
+import json
 from os.path import isfile
 
 app = Flask(__name__)
+
+api_key = 'e5b2cb8889174437992143058232404'
 
 def connectDB(dbname):
     dbIsCreated = isfile(dbname)
@@ -47,9 +50,10 @@ connectDB("flightsDB.db")
 def search(location=None, cost=None):
     if request.method == 'GET':    
         # Get from WeatherAPI the conditions of the other 9 possible destinations for the next 14 days:
-
+    
         req= requests.get('http://api.weatherapi.com/v1/forecast.json?key=e5b2cb8889174437992143058232404&q=Lisbon&days=14&aqi=no&alerts=no')
-        print(req.content.decode())
+        content = json.loads(req.content.decode())
+        print(content['current']['condition']['text'])
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))
         r.status_code = 200
         return r

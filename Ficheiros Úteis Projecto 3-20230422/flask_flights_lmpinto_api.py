@@ -4,7 +4,7 @@
 # em vez do usual: 
 #GET a : https://api.flightapi.io/roundtrip/{apikey}/GRU/JFK/2023-04-04/2023-04-08/1/0/0/Economy/EUR
 #fazer:
-#GET a : https://localhost:9998/roundtrip/{apikey}/GRU/JFK/2023-04-04/2023-04-08/1/0/0/Economy/EUR
+#GET a : https://localhost:8080/roundtrip/{apikey}/GRU/JFK/2023-04-04/2023-04-08/1/0/0/Economy/EUR
 
 from flask import Flask, request, make_response
 import json
@@ -37,4 +37,4 @@ def home(src,dst,dept,arri,apikey):
     return rsp
 
 if __name__ == '__main__':
-    app.run(debug=True,port=9998)
+    app.run(debug=True,port=8080)

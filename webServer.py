@@ -20,23 +20,22 @@ def connectDB(dbname):
     if not dbIsCreated:
         cursor.execute("PRAGMA foreign_keys = ON;") # Allow foreign keys
         cursor.execute("CREATE TABLE weather (date INTEGER, location TEXT, condition TEXT, mintemp_c INTEGER, maxtemp_c INTEGER, \
-                        PRIMARY KEY(date, location);") # Create table weather with key - (date,location)
+                    PRIMARY KEY(date, location));") # Create table weather with key - (date,location)
         cursor.execute("CREATE TABLE locations (id INTEGER, name TEXT, IATA TEXT, wea_name TEXT);") # Criação da tabela locations 
         cursor.execute("CREATE TABLE legs (id TEXT, dep_IATA TEXT, arr_IATA TEXT, dep_datetime INTEGER, arr_datetime INTEGER,\
-                        duration_min INTEGER, arlineCodes TEXT)") # Criação da tabela legs (voos)
-        cursor.execute("CREATE TABLE roundtrips (id INTEGER, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT)") # Criação da tabela 
-        cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT)") # Criação da tabela airlines
+                        duration_min INTEGER, arlineCodes TEXT);") # Criação da tabela legs (voos)
+        cursor.execute("CREATE TABLE roundtrips (id INTEGER, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT);") # Criação da tabela 
+        cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT);") # Criação da tabela airlines
         # Inicializar a tabela locations com 10 registos:
         registos = [(0,'Lisboa','LIS','lisbon'),
-            (1,'Madrid','MAD','madird'),
-            (2,'Paris','CDG','paris'),
-            (3,'Dublin','DUB','dublin'),
-            (4,'Bruxelas','BRU','brussels'),
-            (5,'Atenas','LJU','athens'),
-            (6,'Amsterdão','AMS','amsterdam'),
-            (7,'Berlim','TXL','berlin'),
-            (8,'Roma','FCO','rome'),
-            (9,'Vienna','VIE','vienna')]
+            (1,'Paris','CDG','Paris'),
+            (2,'Dublin','DUB','Dublin'),
+            (3,'Bruxelas','BRU','Brussels'),
+            (4,'Atenas','ATH','Athens'),
+            (5,'Amsterdão','AMS','Amsterdam'),
+            (6,'Berlim','TXL','Berlin'),
+            (7,'Roma','FCO','Rome'),
+            (8,'Vienna','VIE','Vienna')]
         # cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", registos)
         for i in registos:
             cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", i)
@@ -54,28 +53,40 @@ def search(location=None, cost=None):
         cursor.execute("SELECT wea_name FROM locations WHERE name != ?", (location,))
         names = cursor.fetchall()
         conn.commit()
-        conn.close()
         cities_wea_names = []
         for i in names:
             for x in i:
                 cities_wea_names.append(x)
-        print(cities_wea_names)
         # For each city search for the weather for the next 14 days        
         for city in cities_wea_names:
-            url = f'http://lmpinto.eu.pythonanywhere.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no'
-            req= requests.get(url)
+            #urlWeatherAPI = f'http://lmpinto.eu.pythonanywhere.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' # URL do Professor
+            urlWeatherAPI = f'http://api.weatherapi.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' #Weather API URL
+            req= requests.get(urlWeatherAPI)
             if req.content != b'Cidade nao encontrada':
                 print(json.loads(req.content)['location']['name'], ': ') # Prints name of Capital
-
                 forecast_days = json.loads(req.content)['forecast']['forecastday']
                 for i in forecast_days:
-                    print(i['date'], ": ", i['day']['condition']['text'])
-                # Populate the table weather
+                    print(i['date'], ": ", i['day']['condition']['text']) # Prints dates and Weather conditions on those days. 
+                # Populate the table weather, location == city
+                    date = i["date"]
+                    condition = i['day']['condition']['text']
+                    min_temp = i['day']['mintemp_c']
+                    max_temp = i['day']['maxtemp_c']
+                    cursor.execute("INSERT into WEATHER (date, location, condition, mintemp_c, maxtemp_c) VALUES (?,?,?,?,?);",\
+                                   (date, city, condition, min_temp, max_temp))
+                    conn.commit()
+                # Populate the table airlines:
+                dep_date = None
+                arr_date = None
+                cabin_class = 'Economy'
+                currency = 'EUR'
+                urlFlightRoundtrip = f'http://lmpinto.eu.pythonanywhere.com/roundtrip/{api_key}/{location}/{city}/{dep_date}/{arr_date}/1/0/0/{cabin_class}/{currency}' #URL Professor
                 
             else:
                 print(city, ": Não foi Encontrada")
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))
         r.status_code = 200
+        conn.close() # Closes connection to flightsDB
         return r
 
 @app.route('/filter', methods= ['GET'])

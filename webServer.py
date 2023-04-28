@@ -61,7 +61,7 @@ def sunnyPlaner(city):
     sunny_clear_days = cursor.fetchall()
     conn.commit()
     for i in sunny_clear_days:
-        accceptable_days.append(i)
+        accceptable_days.append(i[0])
     if len(accceptable_days) >= 2:
         return accceptable_days
     

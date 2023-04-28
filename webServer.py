@@ -66,8 +66,7 @@ def search(location=None, cost=None):
             req= requests.get(url)
             if req.content != b'Cidade nao encontrada':
                 print(json.loads(req.content)['location']['name'])
-                weathers = []
-                for i in 
+                
             else:
                 print(city, ": Não foi Encontrada")
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))

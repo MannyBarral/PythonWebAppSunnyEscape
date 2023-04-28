@@ -44,6 +44,29 @@ def connectDB(dbname):
         
 connectDB("flightsDB.db")
 
+def sunnyPlaner(city):
+    """Searches the weather database for possible 4 day trips where there is at least 2 sunny/clear days
+
+    Args:
+        city (string): city on which we search for sunny days 
+
+    Returns:
+        String: A list of sunny days,(For Now) !!!!!!!!!!
+    """     
+    conn, cursor = connectDB('flightsDB.db')
+
+    accceptable_days = []
+    cursor.execute('SELECT date FROM weather WHERE location = ? AND condition = "Sunny" \
+                   OR condition = "Clear"', (city,))
+    sunny_clear_days = cursor.fetchall()
+    conn.commit()
+    for i in sunny_clear_days:
+        accceptable_days.append(i)
+    if len(accceptable_days) >= 2:
+        return accceptable_days
+    
+
+
 @app.route('/search')
 @app.route('/search/<location>/<int:cost>')
 def search(location=None, cost=None):
@@ -59,10 +82,14 @@ def search(location=None, cost=None):
                 cities_wea_names.append(x)
         # For each city search for the weather for the next 14 days        
         for city in cities_wea_names:
-            #urlWeatherAPI = f'http://lmpinto.eu.pythonanywhere.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' # URL do Professor
-            urlWeatherAPI = f'http://api.weatherapi.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' #Weather API URL
+            # Per Possible City
+
+            urlWeatherAPI = f'http://lmpinto.eu.pythonanywhere.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' # URL do Professor
+            #urlWeatherAPI = f'http://api.weatherapi.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' #Weather API URL
             req= requests.get(urlWeatherAPI)
             if req.content != b'Cidade nao encontrada':
+                # If the city exists (in professor´s API)
+
                 print(json.loads(req.content)['location']['name'], ': ') # Prints name of Capital
                 forecast_days = json.loads(req.content)['forecast']['forecastday']
                 for i in forecast_days:
@@ -75,13 +102,15 @@ def search(location=None, cost=None):
                     cursor.execute("INSERT into WEATHER (date, location, condition, mintemp_c, maxtemp_c) VALUES (?,?,?,?,?);",\
                                    (date, city, condition, min_temp, max_temp))
                     conn.commit()
+                # Define possible destinations in which there is ,at least, 2 sunny/clear days out of 4:
+                print(sunnyPlaner(city))
                 # Populate the table airlines:
                 dep_date = None
                 arr_date = None
                 cabin_class = 'Economy'
                 currency = 'EUR'
                 urlFlightRoundtrip = f'http://lmpinto.eu.pythonanywhere.com/roundtrip/{api_key}/{location}/{city}/{dep_date}/{arr_date}/1/0/0/{cabin_class}/{currency}' #URL Professor
-                
+
             else:
                 print(city, ": Não foi Encontrada")
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))

@@ -65,9 +65,13 @@ def search(location=None, cost=None):
             url = f'http://lmpinto.eu.pythonanywhere.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no'
             req= requests.get(url)
             if req.content != b'Cidade nao encontrada':
-                print(json.loads(req.content)['location']['name'])
-                # Populate the table weather (we dont need id for this table as long as date and location are a unique pair of keysd)
+                print(json.loads(req.content)['location']['name'], ': ') # Prints name of Capital
 
+                forecast_days = json.loads(req.content)['forecast']['forecastday']
+                for i in forecast_days:
+                    print(i['date'], ": ", i['day']['condition']['text'])
+                # Populate the table weather
+                
             else:
                 print(city, ": Não foi Encontrada")
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))

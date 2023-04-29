@@ -8,10 +8,13 @@ import requests
 import sqlite3
 import json
 from os.path import isfile
+from datetime import datetime, date, timedelta
 
 app = Flask(__name__)
 
 api_key = 'e5b2cb8889174437992143058232404'
+
+today = datetime.combine(date.today(), datetime.min.time())
 
 def connectDB(dbname):
     dbIsCreated = isfile(dbname)
@@ -51,20 +54,35 @@ def sunnyPlaner(city):
         city (string): city on which we search for sunny days 
 
     Returns:
-        String: A list of sunny days,(For Now) !!!!!!!!!!
+        List: List of possible 4 day intervals, where there are atleast 2 sunny (first) days
     """     
     conn, cursor = connectDB('flightsDB.db')
-
+    poss_intervals = []
     accceptable_days = []
     cursor.execute('SELECT date FROM weather WHERE location = ? AND condition = "Sunny" \
                    OR condition = "Clear"', (city,))
     sunny_clear_days = cursor.fetchall()
     conn.commit()
     for i in sunny_clear_days:
-        accceptable_days.append(i[0])
-    if len(accceptable_days) >= 2:
-        return accceptable_days
+        # Puting all sunny/clear dates into acceptable days
+        date = datetime.strptime(i[0],'%Y-%m-%d') 
+        accceptable_days.append(date)
     
+    # Sliding window method for 4 day periods:
+    periods = []
+    for date in accceptable_days:
+        # Makes sure we dont book past day 14 from today´s date
+        if date < today + timedelta(days= 10):
+            periods.append([date, date + timedelta(days= 1), date + timedelta(days= 2), date + timedelta(days= 3)])
+    
+    for period in periods:
+        counter = 0 
+        for day in period:
+            if day in accceptable_days:
+                counter += 1
+        if counter >= 2:
+            poss_intervals.append((period[0].date().strftime('%Y-%m-%d'), period[-1].date().strftime('%Y-%m-%d')))
+    return poss_intervals
 
 
 @app.route('/search')
@@ -99,8 +117,11 @@ def search(location=None, cost=None):
                     condition = i['day']['condition']['text']
                     min_temp = i['day']['mintemp_c']
                     max_temp = i['day']['maxtemp_c']
-                    cursor.execute("INSERT into WEATHER (date, location, condition, mintemp_c, maxtemp_c) VALUES (?,?,?,?,?);",\
-                                   (date, city, condition, min_temp, max_temp))
+
+                    dateCheck = datetime.strptime(date,'%Y-%m-%d') 
+                    if dateCheck >= today:
+                        cursor.execute("INSERT into WEATHER (date, location, condition, mintemp_c, maxtemp_c) VALUES (?,?,?,?,?);",\
+                                    (date, city, condition, min_temp, max_temp))
                     conn.commit()
                 # Define possible destinations in which there is ,at least, 2 sunny/clear days out of 4:
                 print(sunnyPlaner(city))

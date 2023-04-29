@@ -30,14 +30,18 @@ def connectDB(dbname):
         cursor.execute("CREATE TABLE roundtrips (id INTEGER, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT);") # Criação da tabela 
         cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT);") # Criação da tabela airlines
         # Inicializar a tabela locations com 10 registos:
-        registos = []
+        registos = [(0,'Lisboa','LIS','lisbon'),
+            (1,'Paris','ORY','Paris'),
+            (2,'Roma','FCO','Rome'),
+            (3,'Madird','MAD','Madrid'),
+            (4,'Vienna','VIE','Vienna')]
         # cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", registos)
         for i in registos:
             cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", i)
         connection.commit()
     return connection, cursor
         
-connectDB("flightsDB.db")
+connectDB("flightsDB2.db")
 
 def sunnyPlaner(city):
     """Searches the weather database for possible 4 day trips where there is at least 2 sunny/clear days
@@ -48,7 +52,7 @@ def sunnyPlaner(city):
     Returns:
         List: List of possible 4 day intervals, where there are atleast 2 sunny (first) days
     """     
-    conn, cursor = connectDB('flightsDB.db')
+    conn, cursor = connectDB('flightsDB2.db')
     poss_intervals = []
     accceptable_days = []
     cursor.execute('SELECT date FROM weather WHERE location = ? AND condition = "Sunny" \
@@ -82,7 +86,7 @@ def sunnyPlaner(city):
 def search(location=None, cost=None):
     if request.method == 'GET':    
         # Get from WeatherAPI the conditions of the other 9 possible destinations for the next 14 days:
-        conn, cursor = connectDB('flightsDB.db')
+        conn, cursor = connectDB('flightsDB2.db')
         cursor.execute("SELECT wea_name FROM locations WHERE name != ?", (location,))
         names = cursor.fetchall()
         conn.commit()
@@ -93,7 +97,6 @@ def search(location=None, cost=None):
         # For each city search for the weather for the next 14 days        
         for city in cities_wea_names:
             # Per Possible City
-
             urlWeatherAPI = f'http://lmpinto.eu.pythonanywhere.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' # URL do Professor
             #urlWeatherAPI = f'http://api.weatherapi.com/v1/forecast.json?key={api_key}&q={city}&days=14&aqi=no&alerts=no' #Weather API URL
             req= requests.get(urlWeatherAPI)
@@ -119,33 +122,25 @@ def search(location=None, cost=None):
                 # List with tuples with possible 4 day intervals on witch at least the first two days are sunny 
                 poss_intervals = sunnyPlaner(city)
 
-                # for interval in poss_intervals:
-                # # For each of those intervals:
+                print(poss_intervals)
 
-                #     dep_date = interval[0]
-                #     arr_date = interval[1]
-                #     cabin_class = 'Economy'
-                #     currency = 'EUR'
-                #     # urlFlightRoundtrip = f'http://lmpinto.eu.pythonanywhere.com/roundtrip/{api_key}/{location}/{city}/{dep_date}/{arr_date}/1/0/0/{cabin_class}/{currency}' #URL Professor
-                #     # req2 = requests.get(urlFlightRoundtrip)
-                #     # print(req2.content)
+                #Pesquisar na flight API:
 
-                #     # legs = []
-                #     # for leg in json.loads(req2.content)['legs']:
-                #     #     #only chose direct flights:
-                #     #     if leg['stopoversCount'] == 0:
-                #     #         legs.append(leg)
+                dep_date = "2023-04-26"
+                arr_date = "2023-04-29"
+                cabin_class = 'Economy'
+                currency = 'EUR'
+                cursor.execute('SELECT IATA FROM locations WHERE wea_name = ?', (city,))
+                capital = cursor.fetchone()[0]
+                urlFlightRoundtrip = f'http://lmpinto.eu.pythonanywhere.com/roundtrip/ygyghjgjh/LIS/{capital}/2023-04-26/2023-04-29/1/0/0/Economy/EUR' #URL Professor
+                req2 = requests.get(urlFlightRoundtrip)
+
+                for leg in json.loads(req2.content)['legs']:
+                    if leg['stopoversCount'] == 0:
+                        print(leg['id'])
 
             else:
                 print(city, ": Não foi Encontrada")
-                
-            """
-            Placeholder code for when flight api is working, going to access directly files from 
-            """
-            req3 = requests.get('http://lmpinto.eu.pythonanywhere.com/roundtrip/ygyghjgjh/LIS/MAD/2023-04-26/2023-04-29/1/0/0/Economy/EUR')
-            print(req3.content)
-            
-            
 
 
         r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))
@@ -162,4 +157,4 @@ def details ():
     pass
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8081)
+    app.run(debug=True, port=8082)

@@ -20,7 +20,7 @@ while True:
         if operation == "SEARCH":
         # Param: <location> <cost> 
         # Given a <cost> and <location>, returns all trips until said <cost> based on the <location>
-            r = requests.get('http://127.0.0.1:8081/search/' + cmnd.split()[1]+ "/"+ cmnd.split()[2])
+            r = requests.get('http://127.0.0.1:8082/search/' + cmnd.split()[1]+ "/"+ cmnd.split()[2])
             print(r.status_code)
             print(r.content.decode())
 

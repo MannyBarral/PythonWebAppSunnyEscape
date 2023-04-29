@@ -30,15 +30,7 @@ def connectDB(dbname):
         cursor.execute("CREATE TABLE roundtrips (id INTEGER, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT);") # Criação da tabela 
         cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT);") # Criação da tabela airlines
         # Inicializar a tabela locations com 10 registos:
-        registos = [(0,'Lisboa','LIS','lisbon'),
-            (1,'Paris','CDG','Paris'),
-            (2,'Dublin','DUB','Dublin'),
-            (3,'Bruxelas','BRU','Brussels'),
-            (4,'Atenas','ATH','Athens'),
-            (5,'Amsterdão','AMS','Amsterdam'),
-            (6,'Berlim','TXL','Berlin'),
-            (7,'Roma','FCO','Rome'),
-            (8,'Vienna','VIE','Vienna')]
+        registos = []
         # cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", registos)
         for i in registos:
             cursor.execute("INSERT INTO locations VALUES (?,?,?,?)", i)

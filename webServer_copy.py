@@ -26,8 +26,8 @@ def connectDB(dbname):
                     PRIMARY KEY(date, location));") # Create table weather with key - (date,location)
         cursor.execute("CREATE TABLE locations (id INTEGER, name TEXT, IATA TEXT, wea_name TEXT);") # Criação da tabela locations 
         cursor.execute("CREATE TABLE legs (id TEXT, dep_IATA TEXT, arr_IATA TEXT, dep_datetime INTEGER, arr_datetime INTEGER,\
-                        duration_min INTEGER, arlineCodes TEXT);") # Criação da tabela legs (voos)
-        cursor.execute("CREATE TABLE roundtrips (id INTEGER, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT);") # Criação da tabela 
+                        duration_min INTEGER, airlineCodes TEXT);") # Criação da tabela legs (voos)
+        cursor.execute("CREATE TABLE roundtrips (id TEXT, cost INTEGER, id_leg0 TEXT, id_leg1 TEXT);") # Criação da tabela 
         cursor.execute("CREATE TABLE airlines (code TEXT, name TEXT);") # Criação da tabela airlines
         # Inicializar a tabela locations com 10 registos:
         registos = [(0,'Lisboa','LIS','lisbon'),
@@ -122,8 +122,6 @@ def search(location=None, cost=None):
                 # List with tuples with possible 4 day intervals on witch at least the first two days are sunny 
                 poss_intervals = sunnyPlaner(city)
 
-                print(poss_intervals)
-
                 #Pesquisar na flight API:
 
                 dep_date = "2023-04-26"
@@ -134,27 +132,115 @@ def search(location=None, cost=None):
                 capital = cursor.fetchone()[0]
                 urlFlightRoundtrip = f'http://lmpinto.eu.pythonanywhere.com/roundtrip/ygyghjgjh/LIS/{capital}/2023-04-26/2023-04-29/1/0/0/Economy/EUR' #URL Professor
                 req2 = requests.get(urlFlightRoundtrip)
-
-                for leg in json.loads(req2.content)['legs']:
+                legs = json.loads(req2.content)['legs']
+                one_way_legs = []
+                for leg in legs:
                     if leg['stopoversCount'] == 0:
-                        print(leg['id'])
+                        one_way_legs.append(leg)
 
-            else:
-                print(city, ": Não foi Encontrada")
+                # Populate airlines table:
+                airlines = json.loads(req2.content)['airlines']
+                for airline in airlines:
+                    cursor.execute('INSERT into airlines (code, name) VALUES (?,?)', (airline['code'], airline['name']))
+                    conn.commit()
 
+                # Populate the legs table
+                for owl in one_way_legs:
+                    cursor.execute('INSERT into legs (id, dep_IATA, arr_IATA, dep_datetime, arr_datetime, duration_min, airlineCodes)\
+                                   VALUES (?,?,?,?,?,?,?)',(owl['id'], owl['departureAirportCode'], owl['arrivalAirportCode'], owl['departureTime'],
+                                                           owl['arrivalTime'], owl['duration'], owl['airlineCodes'][0]))
+                    conn.commit()
+                    
+                # Populate table roundtrip
+                trips = json.loads(req2.content)['trips']
+                fares = json.loads(req2.content)['fares']
+                for x in range(len(trips)):
+                    cursor.execute('INSERT into roundtrips (id, cost, id_leg0, id_leg1) \
+                                   VALUES (?,?,?,?)', (trips[x]['id'] , fares[x]['price']['totalAmount'], trips[x]['legIds'][0], trips[x]['legIds'][1]))
+                    conn.commit()
 
-        r = make_response(jsonify("Placeholder for response to search: viagens (roundtrips) from location to another under price stipulated"))
+                # Formulate a response with all round trips with cost under the cost stipulated
+                response = []
+                cursor.execute("SELECT * FROM roundtrips WHERE cost < ?", (cost,))
+                trips_under_cost = cursor.fetchall()
+                conn.commit()
+                for trip in trips_under_cost:
+                    response.append(trip)
+
+        r = make_response(jsonify(response))
         r.status_code = 200
         conn.close() # Closes connection to flightsDB
         return r
 
+
 @app.route('/filter', methods= ['GET'])
+@app.route('/filter/diversify', methods= ['GET'])
 def filter ():
+    if request.method == 'GET':
+        
+        conn, cursor = connectDB('flightsDB2.db')
+
+        cursor.execute('SELECT * FROM roundtrips;')
+        trips = cursor.fetchall()
+        
+        tripsandcost = {}
+
+        for trip in trips:
+            cursor.execute('SELECT arr_IATA FROM legs WHERE id = ?', (trip[2],))
+            destinoIATA = cursor.fetchone()
+
+            if destinoIATA != None:
+            
+                if destinoIATA[0] not in tripsandcost:
+                    tripsandcost[destinoIATA[0]] = [[trip[0]], trip[1]]
+                else:
+                    if trip[1] < tripsandcost[destinoIATA[0]][1]:
+                        tripsandcost[destinoIATA[0]] = [[trip[0]], trip[1]]
+
+        response = tripsandcost
+        
+        r = make_response(jsonify(response))
+        r.status_code = 200
+        conn.close() # Closes connection to flightsDB
+        return r
+    
+@app.route('/filter/<destination>/<airline>/<int:days>', methods= ['GET'])
+def filter2(destination = None, airline = None, days = None):
     pass
 
+
 @app.route('/details', methods=['GET'])
-def details ():
-    pass
+@app.route('/details/<tripID>', methods= ['GET'])
+def details (tripID = None):
+    if request.method == 'GET':
+
+        conn, cursor = connectDB("flightsDB2.db")
+        response = {}
+
+        cursor.execute('SELECT * FROM roundtrips WHERE id == ?', (tripID,))
+        roundTrip = cursor.fetchone()
+        
+        if roundTrip != None:
+            cursor.execute('SELECT * FROM legs WHERE id == ?', (roundTrip[2],))
+            firstLegInfo = cursor.fetchone()
+
+            cursor.execute('SELECT * FROM legs WHERE id == ?', (roundTrip[3],))
+            secondLegInfo = cursor.fetchone()
+
+            conn.commit() 
+
+            response['tripID'] = tripID
+            response['Custo Total'] = roundTrip[1]
+            response['First Leg'] = firstLegInfo
+            response['second Leg'] = secondLegInfo
+
+        else:
+            response = "FlightNotFound"
+
+        r = make_response(jsonify(response))
+        r.status_code = 200
+        conn.close() # Closes connection to flightsDB
+        return r
 
 if __name__ == "__main__":
     app.run(debug=True, port=8082)
